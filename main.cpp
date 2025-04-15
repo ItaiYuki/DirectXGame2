@@ -44,27 +44,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // クライアント領域をもとに実際のサイズにwrcを変更してもらう
   AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
 
-  //
+  // ウィンドウの生成
   HWND hwnd =
-      CreateWindow(wc.lpszClassName, L"CG2", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-                   CW_USEDEFAULT, wrc.right - wrc.left, wrc.bottom - wrc.top,
-                   nullptr, nullptr, wc.hInstance, nullptr);
+      CreateWindow(wc.lpszClassName,
+                   L"CG2",
+                   WS_OVERLAPPEDWINDOW, 
+                   CW_USEDEFAULT,
+                   CW_USEDEFAULT, 
+                   wrc.right - wrc.left, 
+                   wrc.bottom - wrc.top,
+                   nullptr,
+                   nullptr,
+                   wc.hInstance,
+                   nullptr);
 
-  //ウィンドウを表示する
+  // ウィンドウを表示する
   ShowWindow(hwnd, SW_SHOW);
 
   MSG msg{};
   // ウィンドウの×ボタンが押されるまでループ
   while (msg.message != WM_QUIT) {
-  //Windowsにメッセージが来てたら最優先で処理させる
+    // Windowsにメッセージが来てたら最優先で処理させる
     if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-    TranslateMessage(&msg);
+      TranslateMessage(&msg);
       DispatchMessage(&msg);
     } else {
-    //ゲームの処理
-        }
-      }
+      // ゲームの処理
 
+    }
+  }
 
   return 0;
 }
