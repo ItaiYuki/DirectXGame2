@@ -44,6 +44,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // クライアント領域をもとに実際のサイズにwrcを変更してもらう
   AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
 
+
   // ウィンドウの生成
   HWND hwnd =
       CreateWindow(wc.lpszClassName,
