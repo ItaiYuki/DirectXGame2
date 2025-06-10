@@ -364,8 +364,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   hr = dxcUtils->CreateDefaultIncludeHandler(&includehandler);
   assert(SUCCEEDED(hr));
 
-  ////////////////////////    P30    /////////////////////////////////
-
+  
   // RootSignature作成
   D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
   descriptionRootSignature.Flags =
