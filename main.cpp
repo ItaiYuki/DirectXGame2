@@ -1174,7 +1174,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // vertexData[5].texcoord = {1.0f, 1.0f};
 
   // モデル読み込み
-  ModelData modelData = LoadObjFile("resources", "plane.obj");
+  ModelData modelData = LoadObjFile("resources/fence", "fence.obj");
   // ModelData modelData = LoadObjFile("resources", "axis.obj");
 
   // 頂点リソースを作る
