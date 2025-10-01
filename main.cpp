@@ -365,26 +365,6 @@ std::wstring ConvertString(const std::string &str) {
   return result;
 }
 
-//// １Textureデータを読む
-//DirectX::ScratchImage LoadTexture(const std::string &filePath) {
-//  // テクスチャファイルを読んでプログラムで扱えるようにする
-//  DirectX::ScratchImage image{};
-//  std::wstring filePathW = ConvertString(filePath);
-//  HRESULT hr = DirectX::LoadFromWICFile(
-//      filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_RGB, nullptr, image);
-//  assert(SUCCEEDED(hr));
-//
-//  // ミップマップの作成
-//  DirectX::ScratchImage mipImages{};
-//  hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(),
-//                                image.GetMetadata(), DirectX::TEX_FILTER_SRGB,
-//                                0, mipImages);
-//  assert(SUCCEEDED(hr));
-//
-//  // ミップマップ付きのデータを返す
-//  return mipImages;
-//}
-
 // ２DirectX12のTextureResourceを作る
 ID3D12Resource *CreateTextureResource(ID3D12Device *device,
                                       const DirectX::TexMetadata &metadata) {
@@ -568,7 +548,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 }
 
 void Log(const std::string &message) { OutputDebugStringA(message.c_str()); }
-
 
 // wstring->string
 std::string ConvertString(const std::wstring &str) {
@@ -1092,6 +1071,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // 全ての色要素を書き込む
   blendDesc.RenderTarget[0].RenderTargetWriteMask =
       D3D12_COLOR_WRITE_ENABLE_ALL;
+  blendDesc.RenderTarget[0].BlendEnable = TRUE;
+  blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+  blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+  blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+
 
   // RasiterzerStsteの設定
   D3D12_RASTERIZER_DESC rasteriZerDesc{};
@@ -1187,8 +1174,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // vertexData[5].texcoord = {1.0f, 1.0f};
 
   // モデル読み込み
-  // ModelData modelData = LoadObjFile("resources", "plane.obj");
-  ModelData modelData = LoadObjFile("resources", "axis.obj");
+  ModelData modelData = LoadObjFile("resources", "plane.obj");
+  // ModelData modelData = LoadObjFile("resources", "axis.obj");
 
   // 頂点リソースを作る
   ID3D12Resource *vertexResource = CreateBufferResource(
@@ -1407,7 +1394,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui_ImplWin32_NewFrame();
       ImGui::NewFrame();
 
-      transform.rotate.y += 0.03f;
+      /*transform.rotate.y += 0.03f;*/
       Matrix4x4 worldMatrix = MakeAffineMatrix(
           transform.scale, transform.rotate, transform.translate);
       Matrix4x4 cameraMatrix =
@@ -1426,6 +1413,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui::Begin("Settings");
       ImGui::ColorEdit4("material", &materialData->x,
                         ImGuiColorEditFlags_AlphaPreview); // RGBWの指定
+      ImGui::DragFloat3("transform", &transform.translate.x, 0.1f);
       ImGui::DragFloat2("Sprite taransform", &transformSprite.translate.x,
                         1.0f);
       ImGui::DragFloat("rotate.y", &transform.rotate.y, 0.1f);
@@ -1503,13 +1491,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       // モデル描画
       commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 
-      //// Spriteの描画。変更が必要なものだけ変更
-      // commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
-      //// TransformationMatrixCBufferの場所を設定
-      // commandList->SetGraphicsRootConstantBufferView(
-      //     1, transformtionMatirxResourceSprite->GetGPUVirtualAddress());
-      //// 描画！（DrawInstanced(DrawCall/ドローコル）
-      // commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+      // Spriteの描画。変更が必要なものだけ変更
+      commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
+      // TransformationMatrixCBufferの場所を設定
+      commandList->SetGraphicsRootConstantBufferView(
+          1, transformtionMatirxResourceSprite->GetGPUVirtualAddress());
+      // 描画！（DrawInstanced(DrawCall/ドローコル）
+      commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
       // 実際のcommandListのImGuiの描画コマンドを積む
       ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
