@@ -1252,7 +1252,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
                       srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
   // Textureを読んで転送する
-  DirectX::ScratchImage mipImages = LoadTexture("resources/uvChecker.png");
+  DirectX::ScratchImage mipImages = LoadTexture("resources/fence/fence.png");
   const DirectX::TexMetadata &metadata = mipImages.GetMetadata();
   ID3D12Resource *textureResource = CreateTextureresource(device, metadata);
   UploadTextureData(textureResource, mipImages);
