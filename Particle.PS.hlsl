@@ -1,4 +1,5 @@
-#include "object3d.hlsli"
+#include "Particle.hlsli"
+
 struct Material
 {
     float32_t4 color;
