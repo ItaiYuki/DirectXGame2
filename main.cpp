@@ -12,6 +12,7 @@
 #include <dxgidebug.h>
 #include <format>
 #include <fstream>
+#include <numbers>
 #include <sstream>
 #include <string>
 
@@ -411,7 +412,7 @@ ID3D12Resource *CreateTextureResource(ID3D12Device *device,
   resourceDesc.DepthOrArraySize =
       UINT16(metadata.arraySize);        // 奥行きor配列Textureの配列数
   resourceDesc.Format = metadata.format; // TextureのFormat
-  resourceDesc.SampleDesc.Count = 1; // サンプリングカウント。１固定
+  resourceDesc.SampleDesc.Count = 1;     // サンプリングカウント。１固定
   resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION(
       metadata.dimension); // Textureの次元数。普段使っているのは２次元
   // ２.利用するHeapの設定
@@ -424,12 +425,12 @@ ID3D12Resource *CreateTextureResource(ID3D12Device *device,
   // ３.Resourceを生成する
   ID3D12Resource *resource = nullptr;
   HRESULT hr = device->CreateCommittedResource(
-      &heapProperties,      // Heapの設定
-      D3D12_HEAP_FLAG_NONE, // Heapの特殊な設定。特になし
-      &resourceDesc,        // Resourceの設定
+      &heapProperties,                   // Heapの設定
+      D3D12_HEAP_FLAG_NONE,              // Heapの特殊な設定。特になし
+      &resourceDesc,                     // Resourceの設定
       D3D12_RESOURCE_STATE_GENERIC_READ, // 初回のResourceState。Textureは基本読むだけ
-      nullptr,                  // Clear最適値。使わないのでnullptr
-      IID_PPV_ARGS(&resource)); // 作成するResourceポインタへのポインタ
+      nullptr,                           // Clear最適値。使わないのでnullptr
+      IID_PPV_ARGS(&resource));          // 作成するResourceポインタへのポインタ
   assert(SUCCEEDED(hr));
   return resource;
 }
@@ -446,9 +447,9 @@ void UploadTextureData(ID3D12Resource *texture,
     // Textureに転送
     HRESULT hr =
         texture->WriteToSubresource(UINT(mipLevel),
-                                    nullptr,     // 全領域へコピー
-                                    img->pixels, // 元データアドレス
-                                    UINT(img->rowPitch), // １ラインサイズ
+                                    nullptr,              // 全領域へコピー
+                                    img->pixels,          // 元データアドレス
+                                    UINT(img->rowPitch),  // １ラインサイズ
                                     UINT(img->slicePitch) // １枚サイズ
         );
     assert(SUCCEEDED(hr));
@@ -460,7 +461,7 @@ MaterialData LoadMaterialTemplateFile(const std::string &directoryPath,
                                       const std::string &filename) {
   // １．中で必要となる変数の宣言
   MaterialData materialData; // 構築するMaterialData
-  std::string line; // ファイルから読んだ１行を格納するもの
+  std::string line;          // ファイルから読んだ１行を格納するもの
 
   // ２．ファイルを開く
   std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
@@ -492,7 +493,7 @@ ModelData LoadObjFile(const std::string &directoryPath,
   std::vector<Vector4> positions; // 位置
   std::vector<Vector3> normals;   // 法線
   std::vector<Vector2> texcoords; // テクスチャ座標
-  std::string line; // ファイルから読んで１行を格納するもの
+  std::string line;               // ファイルから読んで１行を格納するもの
 
   // ２，ファイルを開く
   std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
@@ -652,9 +653,9 @@ ID3D12Resource *CreateDepthStencilTextureResource(ID3D12Device *device,
   // Resourceの生成
   ID3D12Resource *resource = nullptr;
   HRESULT hr = device->CreateCommittedResource(
-      &heapProperties,      // Heapの設定
-      D3D12_HEAP_FLAG_NONE, // Heapの特殊な設定。特になし。
-      &resourceDesc,        // Resourceの設定
+      &heapProperties,                  // Heapの設定
+      D3D12_HEAP_FLAG_NONE,             // Heapの特殊な設定。特になし。
+      &resourceDesc,                    // Resourceの設定
       D3D12_RESOURCE_STATE_DEPTH_WRITE, // 深度値を書き込む状態にしておく
       &depthClearValue,                 // Clear最適値
       IID_PPV_ARGS(&resource));
@@ -698,9 +699,9 @@ IDxcBlob *CompileShader(
   // 実際にShaderをコンパイルする
   IDxcResult *shaderResult = nullptr;
   hr = dxcCompiler->Compile(&shaderSourceBuffer, // 読み込んだファイル
-                            arguments, // コンパイルオプション
+                            arguments,           // コンパイルオプション
                             _countof(arguments), // コンパイルオプションの数
-                            includeHandler, // includeが含まれた諸々
+                            includeHandler,      // includeが含まれた諸々
                             IID_PPV_ARGS(&shaderResult) // コンパイル結果
   );
   // コンパイルエラーではなく<dxcが起動できないなど致命的な状況
@@ -790,17 +791,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
 
   // ウィンドウの生成
-  HWND hwnd = CreateWindow(wc.lpszClassName, // 利用するクラス名
-                           L"CG2",           // タイトルバーの文字
-                           WS_OVERLAPPEDWINDOW, // よく見るウィンドウスタイル
-                           CW_USEDEFAULT, // 表示X座標(Windowsに任せる)
-                           CW_USEDEFAULT, // 表示Y座標(WindowsOSに任せる)
+  HWND hwnd = CreateWindow(wc.lpszClassName,     // 利用するクラス名
+                           L"CG2",               // タイトルバーの文字
+                           WS_OVERLAPPEDWINDOW,  // よく見るウィンドウスタイル
+                           CW_USEDEFAULT,        // 表示X座標(Windowsに任せる)
+                           CW_USEDEFAULT,        // 表示Y座標(WindowsOSに任せる)
                            wrc.right - wrc.left, // ウィンドウ横幅
                            wrc.bottom - wrc.top, // ウィンドウ縦幅
-                           nullptr,      // 親ウィンドウハンドル
-                           nullptr,      // メニューハンドル
-                           wc.hInstance, // インスタンスハンドル
-                           nullptr       // オプション
+                           nullptr,              // 親ウィンドウハンドル
+                           nullptr,              // メニューハンドル
+                           wc.hInstance,         // インスタンスハンドル
+                           nullptr               // オプション
   );
 
   // ウィンドウを表示する
@@ -979,8 +980,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // DescriptorRange
   D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-  descriptorRange[0].BaseShaderRegister = 0; // 0から始まる
-  descriptorRange[0].NumDescriptors = 1;     // 数は１つ
+  descriptorRange[0].BaseShaderRegister = 0;                      // 0から始まる
+  descriptorRange[0].NumDescriptors = 1;                          // 数は１つ
   descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
   descriptorRange[0].OffsetInDescriptorsFromTableStart =
       D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // offsetを自動計算
@@ -1032,7 +1033,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
   staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER; // 比較しない
   staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX; // ありったけのMipmapを使う
-  staticSamplers[0].ShaderRegister = 0; // レジスタ番号０を使う
+  staticSamplers[0].ShaderRegister = 0;         // レジスタ番号０を使う
   staticSamplers[0].ShaderVisibility =
       D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
   descriptionRootSignature.pStaticSamplers = staticSamplers;
@@ -1163,6 +1164,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       &graphicsPipelinStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
   assert(SUCCEEDED(hr));
 
+  // 球表示用
+  const uint32_t kSubdivision = 12;
+  const uint32_t kNumSphereVertices = kSubdivision * kSubdivision * 6;
+  float pi = std::numbers::pi_v<float>;
+
   // 三角形２個
   /*
   ID3D12Resource* vertexResource = CreateBufferResource(device,
@@ -1211,15 +1217,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // 頂点リソースを作る
   ID3D12Resource *vertexResource = CreateBufferResource(
-      device, sizeof(VertexData) * modelData.vertices.size());
+      device,
+      sizeof(VertexData) * kNumSphereVertices /*modelData.vertices.size()*/);
   // 頂点バッファビューを作成する
   D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
   vertexBufferView.BufferLocation =
       vertexResource
           ->GetGPUVirtualAddress(); // リソースの先頭のアドレスから使う
   vertexBufferView.SizeInBytes =
-      UINT(sizeof(VertexData) *
-           modelData.vertices.size()); // 使用するリソースのサイズは頂点のサイズ
+      /*UINT(*/ sizeof(VertexData) * kNumSphereVertices;
+          /* modelData.vertices.size());*/ // 使用するリソースのサイズは頂点のサイズ
   vertexBufferView.StrideInBytes = sizeof(VertexData); // １頂点あたりのサイズ
 
   // 頂点リソースにデータを書き込む
@@ -1247,6 +1254,62 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   scissorRect.right = kClientWidth;
   scissorRect.top = 0;
   scissorRect.bottom = kClientHeight;
+
+  // 経度分割1つ分の角度
+  const float kLonEvery = pi * 2.0f / float(kSubdivision);
+  // 緯度分割1つ分の角度
+  const float kLatEvery = pi / float(kSubdivision);
+
+  // 緯度の方向に分割
+  for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+    float lat = -pi / 2.0f + kLatEvery * latIndex;
+    // 経度の方向に分割しながら線を描く
+    for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+      uint32_t startIndex = (latIndex * kSubdivision + lonIndex) * 6;
+      float lon = lonIndex * kLonEvery;
+
+      vertexData[startIndex].position.x = std::cos(lat) * std::cos(lon);
+      vertexData[startIndex].position.y = std::sin(lat);
+      vertexData[startIndex].position.z = std::cos(lat) * std::sin(lon);
+      vertexData[startIndex].position.w = 1.0f;
+      vertexData[startIndex].texcoord = {float(lonIndex) / float(kSubdivision),
+                                         1.0f - float(latIndex) /
+                                                    float(kSubdivision)};
+
+      vertexData[startIndex + 1].position.x =
+          std::cos(lat + kLatEvery) * std::cos(lon);
+      vertexData[startIndex + 1].position.y = std::sin(lat + kLatEvery);
+      vertexData[startIndex + 1].position.z =
+          std::cos(lat + kLatEvery) * std::sin(lon);
+      vertexData[startIndex + 1].position.w = 1.0f;
+      vertexData[startIndex + 1].texcoord = {
+          float(lonIndex) / float(kSubdivision),
+          1.0f - float(latIndex + 1) / float(kSubdivision)};
+
+      vertexData[startIndex + 2].position.x =
+          std::cos(lat) * std::cos(lon + kLonEvery);
+      vertexData[startIndex + 2].position.y = std::sin(lat);
+      vertexData[startIndex + 2].position.z =
+          std::cos(lat) * std::sin(lon + kLonEvery);
+      vertexData[startIndex + 2].position.w = 1.0f;
+      vertexData[startIndex + 2].texcoord = {
+          float(lonIndex + 1) / float(kSubdivision),
+          1.0f - float(latIndex) / float(kSubdivision)};
+
+      vertexData[startIndex + 3] = vertexData[startIndex + 2];
+      vertexData[startIndex + 4] = vertexData[startIndex + 1];
+
+      vertexData[startIndex + 5].position.x =
+          std::cos(lat + kLatEvery) * std::cos(lon + kLonEvery);
+      vertexData[startIndex + 5].position.y = std::sin(lat + kLatEvery);
+      vertexData[startIndex + 5].position.z =
+          std::cos(lat + kLatEvery) * std::sin(lon + kLonEvery);
+      vertexData[startIndex + 5].position.w = 1.0f;
+      vertexData[startIndex + 5].texcoord = {
+          float(lonIndex + 1) / float(kSubdivision),
+          1.0f - float(latIndex + 1) / float(kSubdivision)};
+    }
+  }
 
   // マテリアル用のリソースを作る。今回はcolor１つ分のサイズを用意する
   ID3D12Resource *materialResource =
@@ -1591,8 +1654,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       // commandList->DrawInstanced(6, 1, 0, 0);
 
       // モデル描画
-      commandList->DrawInstanced(UINT(modelData.vertices.size()), kNumInstance,
-                                 0, 0);
+      commandList->DrawInstanced(kNumSphereVertices, 1, 0, 0); /*UINT(modelData.vertices.size()),
+                                     kNumInstance,
+                                 0, 0);*/
 
       //--------------------------------------
 
