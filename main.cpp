@@ -1310,7 +1310,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui_ImplWin32_NewFrame();
       ImGui::NewFrame();
 
-      transform.rotate.y += 0.03f;
+      /*transform.rotate.y += 0.03f;*/
       Matrix4x4 worldMatrix = MakeAffineMatrix(
           transform.scale, transform.rotate, transform.translate);
       Matrix4x4 cameraMatrix =
