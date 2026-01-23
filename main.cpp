@@ -1,3 +1,4 @@
+
 #include "externals/DirectXTex/DirectXTex.h"
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -1411,6 +1412,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui::NewFrame();
 
       /*transform.rotate.y += 0.03f;*/
+      ImGui::DragFloat("rotate.y", &transform.rotate.y, 0.1f);
       Matrix4x4 worldMatrix = MakeAffineMatrix(
           transform.scale, transform.rotate, transform.translate);
       Matrix4x4 cameraMatrix =
