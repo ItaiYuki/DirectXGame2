@@ -1,4 +1,3 @@
-
 #include "externals/DirectXTex/DirectXTex.h"
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -59,6 +58,7 @@ struct Transform {
 struct Material {
   Vector4 color;
   int32_t enableLighting;
+  float shininess;
 };
 
 struct TransformationMatrix {
@@ -70,6 +70,10 @@ struct DirectionalLight {
   Vector4 color;     // ライトの色
   Vector3 direction; // ライトの向き
   float intensity;
+};
+
+struct CameraForGPU {
+  Vector3 worldPosition;
 };
 
 //------------------------------------
@@ -911,15 +915,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // offsetを自動計算
 
   // RootParameter作成。複数設定できるので配列。今回は結果１つのだけなので長さ１の配列
-  D3D12_ROOT_PARAMETER rootParameters[4] = {};
+  D3D12_ROOT_PARAMETER rootParameters[5] = {};
   rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
   rootParameters[0].ShaderVisibility =
       D3D12_SHADER_VISIBILITY_PIXEL;               // PixelShaderで使う
   rootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0とバインド
+
   rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
   rootParameters[1].ShaderVisibility =
       D3D12_SHADER_VISIBILITY_VERTEX;              // VertexShaderで使う
   rootParameters[1].Descriptor.ShaderRegister = 0; // レジスタ番号0を使う
+
   rootParameters[2].ParameterType =
       D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // CBVを使う
   rootParameters[2].ShaderVisibility =
@@ -927,10 +933,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;
   rootParameters[2].DescriptorTable.NumDescriptorRanges =
       _countof(descriptorRange); // Tableで利用する数
+
   rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
   rootParameters[3].ShaderVisibility =
       D3D12_SHADER_VISIBILITY_PIXEL;               // PixelShaderで使う
   rootParameters[3].Descriptor.ShaderRegister = 1; // レジスタ番号1を使う
+
+  rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+  rootParameters[4].ShaderVisibility =
+      D3D12_SHADER_VISIBILITY_PIXEL;               // PixelShaderで使う
+  rootParameters[4].Descriptor.ShaderRegister = 2; // レジスタ番号2を使う
 
   descriptionRootSignature.pParameters =
       rootParameters; // ルートレートパラメータ配列へのポインタ
@@ -1207,6 +1219,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // マテリアルの内容
   materialData->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
   materialData->enableLighting = true;
+  materialData->shininess = 70;
 
   // wvp用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
   ID3D12Resource *wvpResource =
@@ -1222,7 +1235,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   Transform transform{
       {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
   Transform cameraTransform{
-      {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -5.0f}};
+      {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, -10.0f}};
 
   // ImGuiの初期化。詳細はさして重要ではないので解説は省略する。
   // こういうもんである
@@ -1391,8 +1404,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   directionalLightData->direction = {0.0f, -1.0f, 0.0f};
   directionalLightData->intensity = 1.0f;
 
+  //----------------------------------------------------------------------------------------------------------
+
+  // カメラ用のリソースを作る
+  ID3D12Resource *cameraResource =
+      CreateBufferResource(device, sizeof(CameraForGPU));
+  // マテリアルにデータを書き込む
+  CameraForGPU *cameraData = nullptr;
+  // 書き込むためのアドレスを取得
+  cameraResource->Map(0, nullptr, reinterpret_cast<void **>(&cameraData));
+
+  cameraData->worldPosition = {0.0f, 1.0f, -10.0f};
+
+  //-----------------------------------------------------------------------------------------------------------
+
   // SRVを切り替える
   bool useMonsterBall = true;
+
+  bool showSprite = false;
 
   //------------------------------------------------------------------------------------------------------------------------------
 
@@ -1411,8 +1440,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui_ImplWin32_NewFrame();
       ImGui::NewFrame();
 
+      // Y軸回転　操作
       /*transform.rotate.y += 0.03f;*/
       ImGui::DragFloat("rotate.y", &transform.rotate.y, 0.1f);
+
       Matrix4x4 worldMatrix = MakeAffineMatrix(
           transform.scale, transform.rotate, transform.translate);
       Matrix4x4 cameraMatrix =
@@ -1448,6 +1479,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui::Checkbox("useMonsterBall", &useMonsterBall);
       ImGui::DragFloat3("light", &directionalLightData->direction.x, 0.01f,
                         -1.0f, 1.0f);
+      ImGui::Checkbox("Show Sprite", &showSprite);
       ImGui::End();
 
       // 方向は正規化
@@ -1502,7 +1534,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       commandList->RSSetScissorRects(1, &scissorRect); // Scirssorを設定
       // RootSignatureを設定。PSOに設定しているけど別途設定が必要
       commandList->SetGraphicsRootSignature(rootSignature);
-      commandList->SetPipelineState(graphicsPipelineState);     // PSOを設定
+      commandList->SetPipelineState(graphicsPipelineState); // PSOを設定
+
       commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // VBVを設定
       // 形状を設定。PSOに設定しているものとはまた別。同じものを設定すると考えておけばいいい
       commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1524,24 +1557,31 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       commandList->SetGraphicsRootConstantBufferView(
           3, directionalLightResource->GetGPUVirtualAddress());
 
+      // cameraのCBufferの場所を設定
+      commandList->SetGraphicsRootConstantBufferView(
+          4, cameraResource->GetGPUVirtualAddress());
+
       // 描画!(DrawCall/ドローコル）。３頂点で一つのインスタンス。インスタンスについては今後
       commandList->DrawInstanced(kNumSphereVertices, 1, 0, 0);
 
       //--------------------------------------
 
-      // Spriteの描画。変更が必要なものだけ変更
-      commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
-      // マテリアルCBufferの場所を設定
-      commandList->SetGraphicsRootConstantBufferView(
-          0, materialResourceSprite->GetGPUVirtualAddress());
-      // TransformationMatrixCBufferの場所を設定
-      commandList->SetGraphicsRootConstantBufferView(
-          1, transformationMatirxResourceSprite->GetGPUVirtualAddress());
-      // テクスチャ
-      commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
+      if (showSprite) {
 
-      // 描画！（DrawInstanced(DrawCall/ドローコル）
-      commandList->DrawInstanced(6, 1, 0, 0);
+        // Spriteの描画。変更が必要なものだけ変更
+        commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
+        // マテリアルCBufferの場所を設定
+        commandList->SetGraphicsRootConstantBufferView(
+            0, materialResourceSprite->GetGPUVirtualAddress());
+        // TransformationMatrixCBufferの場所を設定
+        commandList->SetGraphicsRootConstantBufferView(
+            1, transformationMatirxResourceSprite->GetGPUVirtualAddress());
+        // テクスチャ
+        commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
+
+        // 描画！（DrawInstanced(DrawCall/ドローコル）
+        commandList->DrawInstanced(6, 1, 0, 0);
+      }
 
       // 実際のcommandListのImGuiの描画コマンドを積む
       ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -1625,6 +1665,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ImGui_ImplDX12_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
+
+  cameraResource->Release();
 
   directionalLightResource->Release();
 
